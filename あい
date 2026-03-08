@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DailyDrive" />
+  <title>DailyDrive - 習慣トラッカー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+      background: #0f0f1a;
+      color: #fff;
+      min-height: 100vh;
+      padding-bottom: 100px;
+    }
+    .header {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      padding: 50px 20px 30px;
+      text-align: center;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    .header .date { font-size: 14px; color: #888; margin-bottom: 6px; letter-spacing: 0.05em; }
+    .header h1 {
+      font-size: 28px; font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa, #818cf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+    .progress-wrap { background: #1e1e3a; border-radius: 16px; padding: 16px 20px; margin: 0 20px; margin-top: -10px; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: #aaa; margin-bottom: 8px; }
+    .progress-label span:last-child { color: #a78bfa; font-weight: 600; }
+    .progress-bar { background: #2a2a4a; border-radius: 99px; height: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #a78bfa, #818cf8); border-radius: 99px; transition: width 0.5s ease; }
+    .celebration { display: none; text-align: center; padding: 16px 20px; font-size: 16px; font-weight: 600; color: #fbbf24; animation: pulse 1s infinite alternate; }
+    @keyframes pulse { from { opacity: 0.7; } to { opacity: 1; } }
+    .habits-list { padding: 20px 20px 0; display: flex; flex-direction: column; gap: 12px; }
+    .habit-item { background: #1e1e3a; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px; transition: all 0.3s ease; border: 1.5px solid transparent; }
+    .habit-item.done { background: linear-gradient(135deg, #2d1f5e, #1f2d5e); border-color: #a78bfa44; }
+    .habit-check { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #444; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s ease; font-size: 14px; }
+    .habit-item.done .habit-check { background: linear-gradient(135deg, #a78bfa, #818cf8); border-color: transparent; }
+    .habit-icon { font-size: 24px; flex-shrink: 0; }
+    .habit-info { flex: 1; min-width: 0; }
+    .habit-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .habit-item.done .habit-name { text-decoration: line-through; color: #888; }
+    .habit-streak { font-size: 12px; color: #f97316; margin-top: 2px; }
+    .habit-delete { background: none; border: none; color: #555; font-size: 18px; cursor: pointer; padding: 4px 8px; flex-shrink: 0; transition: color 0.2s; }
+    .habit-delete:hover { color: #ef4444; }
+    .add-btn-wrap { padding: 20px; }
+    .add-btn { width: 100%; background: linear-gradient(135deg, #a78bfa22, #818cf822); border: 1.5px dashed #a78bfa66; border-radius: 16px; padding: 16px; color: #a78bfa; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .add-btn:hover { background: linear-gradient(135deg, #a78bfa33, #818cf833); }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: #00000088; z-index: 100; align-items: flex-end; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: #1a1a2e; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 500px; animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; text-align: center; }
+    .modal input[type="text"] { width: 100%; background: #0f0f1a; border: 1.5px solid #333; border-radius: 12px; padding: 14px 16px; color: #fff; font-size: 15px; margin-bottom: 16px; outline: none; transition: border-color 0.2s; }
+    .modal input[type="text"]:focus { border-color: #a78bfa; }
+    .icon-label { font-size: 13px; color: #888; margin-bottom: 10px; }
+    .icon-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+    .icon-btn { width: 44px; height: 44px; border-radius: 12px; background: #0f0f1a; border: 1.5px solid #333; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .icon-btn.selected { border-color: #a78bfa; background: #a78bfa22; }
+    .modal-btns { display: flex; gap: 12px; margin-top: 8px; }
+    .btn-cancel { flex: 1; padding: 14px; border-radius: 12px; background: #2a2a4a; border: none; color: #aaa; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn-save { flex: 2; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, #a78bfa, #818cf8); border: none; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .empty-state { text-align: center; padding: 40px 20px; color: #555; }
+    .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="date" id="dateLabel"></div>
+    <h1>🌟 DailyDrive</h1>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>今日の達成率</span>
+      <span id="progressText">0 / 0</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="celebration" id="celebration">🎉 今日の習慣、全部達成！すごい！</div>
+  <div class="habits-list" id="habitsList"></div>
+  <div class="add-btn-wrap">
+    <button class="add-btn" onclick="openModal()">＋ 習慣を追加する</button>
+  </div>
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2>✏️ 新しい習慣を追加</h2>
+      <input type="text" id="habitNameInput" placeholder="例：30分勉強する" maxlength="30" />
+      <div class="icon-label">アイコンを選ぶ</div>
+      <div class="icon-grid" id="iconGrid"></div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+        <button class="btn-save" onclick="saveHabit()">追加する</button>
+      </div>
+    </div>
+  </div>
+<script>
+  const ICONS = ['📚','🏃','💪','🧘','💧','🥗','😴','✍️','🎯','🎨','🎵','📱','🛁','📵','📝','🔥'];
+  const STORAGE_KEY = 'dailydrive_habits';
+  const LOG_KEY = 'dailydrive_logs';
+  let habits = [], logs = {}, selectedIcon = ICONS[0];
+  function getTodayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function updateDateLabel() {
+    const d = new Date();
+    const days = ['日','月','火','水','木','金','土'];
+    document.getElementById('dateLabel').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+  }
+  function loadData() {
+    habits = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    logs = JSON.parse(localStorage.getItem(LOG_KEY) || '{}');
+    if (habits.length === 0) {
+      habits = [
+        { id: 1, name: '勉強・副業（30分）', icon: '📚' },
+        { id: 2, name: '軽い運動・散歩', icon: '🏃' },
+        { id: 3, name: '寝る前スマホなし', icon: '📵' },
+        { id: 4, name: '明日のタスクをメモ', icon: '📝' },
+        { id: 5, name: '23時までに就寝準備', icon: '😴' },
+      ];
+      saveData();
+    }
+    const today = getTodayStr();
+    if (!logs[today]) logs[today] = {};
+  }
+  function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(habits));
+    localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+  }
+  function getStreak(habitId) {
+    let streak = 0;
+    const d = new Date();
+    while (true) {
+      const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (logs[str] && logs[str][habitId]) { streak++; d.setDate(d.getDate() - 1); } else { break; }
+    }
+    return streak;
+  }
+  function render() {
+    const today = getTodayStr();
+    const list = document.getElementById('habitsList');
+    const done = habits.filter(h => logs[today] && logs[today][h.id]).length;
+    const total = habits.length;
+    document.getElementById('progressText').textContent = `${done} / ${total}`;
+    document.getElementById('progressFill').style.width = total > 0 ? `${(done/total)*100}%` : '0%';
+    document.getElementById('celebration').style.display = (total > 0 && done === total) ? 'block' : 'none';
+    if (habits.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="emoji">🌱</div><p>まだ習慣が登録されていません。<br>「＋ 習慣を追加する」から始めよう！</p></div>`;
+      return;
+    }
+    list.innerHTML = habits.map(h => {
+      const isDone = logs[today] && logs[today][h.id];
+      const streak = getStreak(h.id);
+      return `<div class="habit-item ${isDone ? 'done' : ''}" id="habit-${h.id}">
+        <div class="habit-check" onclick="toggleHabit(${h.id})">${isDone ? '✓' : ''}</div>
+        <div class="habit-icon">${h.icon}</div>
+        <div class="habit-info">
+          <div class="habit-name">${h.name}</div>
+          ${streak > 0 ? `<div class="habit-streak">🔥 ${streak}日連続達成！</div>` : '<div class="habit-streak" style="color:#555">まだ記録なし</div>'}
+        </div>
+        <button class="habit-delete" onclick="deleteHabit(${h.id})">🗑</button>
+      </div>`;
+    }).join('');
+  }
+  function toggleHabit(id) {
+    const today = getTodayStr();
+    if (!logs[today]) logs[today] = {};
+    if (logs[today][id]) { delete logs[today][id]; } else { logs[today][id] = true; }
+    saveData(); render();
+  }
+  function deleteHabit(id) {
+    if (!confirm('この習慣を削除しますか？')) return;
+    habits = habits.filter(h => h.id !== id);
+    saveData(); render();
+  }
+  function openModal() {
+    selectedIcon = ICONS[0];
+    document.getElementById('habitNameInput').value = '';
+    renderIconGrid();
+    document.getElementById('modalOverlay').classList.add('show');
+    document.getElementById('habitNameInput').focus();
+  }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+  function renderIconGrid() {
+    document.getElementById('iconGrid').innerHTML = ICONS.map(icon =>
+      `<button class="icon-btn ${icon === selectedIcon ? 'selected' : ''}" onclick="selectIcon('${icon}')">${icon}</button>`
+    ).join('');
+  }
+  function selectIcon(icon) { selectedIcon = icon; renderIconGrid(); }
+  function saveHabit() {
+    const name = document.getElementById('habitNameInput').value.trim();
+    if (!name) { alert('習慣の名前を入力してください'); return; }
+    habits.push({ id: Date.now(), name, icon: selectedIcon });
+    saveData(); closeModal(); render();
+  }
+  document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+  loadData(); updateDateLabel(); render();
+  setInterval(() => { updateDateLabel(); render(); }, 60000);
+</script>
+</body>
+</html>
